@@ -1,0 +1,211 @@
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { initializeApp } from 'firebase/app';
+import { getAuth, signInAnonymously, onAuthStateChanged } from 'firebase/auth';
+import { getFirestore, doc, setDoc, onSnapshot } from 'firebase/firestore';
+
+// Конфигурация Firebase (если нужна синхронизация)
+const firebaseConfig = JSON.parse(__firebase_config);
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+// ПРЯМАЯ ССЫЛКА НА ФОТО ГАБЕНА ДЛЯ ГИТХАБА
+const GABE_EXTERNAL_URL = "https://i.postimg.cc/mD377m8M/gaben-newell.jpg";
+const COIN_ICON = "https://cdn-icons-png.flaticon.com/512/217/217853.png";
+
+const App = () => {
+  const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState('game');
+  const [coins, setCoins] = useState(0);
+  const [energy, setEnergy] = useState(1000);
+  const [maxEnergy, setMaxEnergy] = useState(1000);
+  const [tapValue, setTapValue] = useState(1);
+  const [income, setIncome] = useState(0);
+  const [clicks, setClicks] = useState([]);
+  const [isPressed, setIsPressed] = useState(false);
+  const [level, setLevel] = useState(1);
+  
+  const audioCtxRef = useRef(null);
+
+  // Звуковой эффект клика
+  const playSound = (freq, vol = 0.02) => {
+    try {
+      if (!audioCtxRef.current) {
+        audioCtxRef.current = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      if (audioCtxRef.current.state === 'suspended') audioCtxRef.current.resume();
+      const osc = audioCtxRef.current.createOscillator();
+      const gain = audioCtxRef.current.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, audioCtxRef.current.currentTime);
+      gain.gain.setValueAtTime(vol, audioCtxRef.current.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, audioCtxRef.current.currentTime + 0.1);
+      osc.connect(gain);
+      gain.connect(audioCtxRef.current.destination);
+      osc.start();
+      osc.stop(audioCtxRef.current.currentTime + 0.1);
+    } catch (e) {}
+  };
+
+  useEffect(() => {
+    const timer = setTimeout(() => setLoading(false), 2000);
+    signInAnonymously(auth).catch(console.error);
+  }, []);
+
+  const handleTap = useCallback((e) => {
+    if (e.cancelable) e.preventDefault();
+    if (energy >= tapValue) {
+      const isCrit = Math.random() > 0.95;
+      const currentTap = isCrit ? tapValue * 5 : tapValue;
+      
+      setCoins(c => c + currentTap);
+      setEnergy(en => Math.max(0, en - tapValue));
+      playSound(isCrit ? 800 : 440 + Math.random() * 50);
+      
+      setIsPressed(true);
+      setTimeout(() => setIsPressed(false), 70);
+
+      const rect = e.currentTarget.getBoundingClientRect();
+      const x = e.clientX || (e.touches && e.touches[0] ? e.touches[0].clientX : rect.left + rect.width / 2);
+      const y = e.clientY || (e.touches && e.touches[0] ? e.touches[0].clientY : rect.top + rect.height / 2);
+
+      const id = Date.now() + Math.random();
+      setClicks(prev => [...prev, { id, x, y, val: currentTap, crit: isCrit }]);
+      setTimeout(() => setClicks(prev => prev.filter(c => c.id !== id)), 600);
+      
+      if (Math.floor((coins + currentTap) / 1000) > level - 1) {
+          setLevel(l => l + 1);
+      }
+    }
+  }, [energy, tapValue, coins, level]);
+
+  // Регенерация энергии и пассивный доход
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setEnergy(en => Math.min(maxEnergy, en + 2));
+      if (income > 0) setCoins(c => c + (income / 3600));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [maxEnergy, income]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center bg-black min-h-screen text-white font-sans">
+        <div className="text-center">
+          <div className="w-24 h-24 rounded-full bg-blue-600/20 mx-auto mb-4 animate-pulse flex items-center justify-center border border-blue-500/50">
+             <span className="text-4xl">🎮</span>
+          </div>
+          <h1 className="text-2xl font-black tracking-widest animate-pulse">GABEN WORLD</h1>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex justify-center bg-neutral-950 min-h-screen text-white select-none touch-none overflow-hidden font-sans">
+      <div className="w-full max-w-[450px] flex flex-col relative bg-black border-x border-white/5">
+        
+        {/* Header */}
+        <div className="p-6 pb-2 flex justify-between items-start">
+          <div className="flex flex-col">
+            <span className="text-[10px] text-blue-500 font-black uppercase tracking-widest opacity-60">Balance</span>
+            <div className="flex items-center gap-2">
+              <img src={COIN_ICON} className="w-8 h-8 drop-shadow-[0_0_8px_rgba(59,130,246,0.5)]" alt="coin" />
+              <span className="text-4xl font-black italic tracking-tighter">{Math.floor(coins).toLocaleString()}</span>
+            </div>
+          </div>
+          <div className="text-right flex flex-col items-end">
+             <span className="text-[10px] text-neutral-600 font-bold uppercase">Level {level}</span>
+             <div className="flex items-center gap-1 text-blue-400 font-bold">
+                <span className="text-xs">+{income}</span>
+                <span className="text-[10px] uppercase opacity-50">/h</span>
+             </div>
+          </div>
+        </div>
+
+        {/* Main Body */}
+        <div className="flex-1 relative flex flex-col justify-center items-center">
+          {clicks.map(c => (
+            <div 
+                key={c.id} 
+                className={`absolute pointer-events-none font-black z-50 animate-pop ${c.crit ? 'text-cyan-400 text-5xl drop-shadow-[0_0_10px_rgba(34,211,238,0.8)]' : 'text-blue-500 text-3xl'}`} 
+                style={{ left: c.x - 20, top: c.y - 40 }}
+            >
+              +{c.val}
+            </div>
+          ))}
+
+          <div className="relative group">
+            {/* Свечение сзади */}
+            <div className="absolute -inset-16 bg-blue-600/10 rounded-full blur-[100px] pointer-events-none group-active:bg-blue-600/20 transition-colors"></div>
+            
+            <div 
+                className={`relative w-72 h-72 rounded-full border-[12px] bg-neutral-900 overflow-hidden shadow-2xl transition-all duration-75 cursor-pointer active:scale-90 ${isPressed ? 'border-blue-500 scale-95 shadow-[0_0_40px_rgba(59,130,246,0.4)]' : 'border-[#111]'}`}
+                onPointerDown={handleTap}
+            >
+                <img 
+                    src={GABE_EXTERNAL_URL} 
+                    className="w-full h-full object-cover pointer-events-none scale-105" 
+                    alt="Lord Gaben"
+                    draggable="false"
+                    onError={(e) => {
+                        e.target.src = "https://api.dicebear.com/7.x/initials/svg?seed=Gabe";
+                    }}
+                />
+            </div>
+          </div>
+
+          <div className="mt-12 text-center">
+            <h2 className="text-[11px] text-blue-900 font-black uppercase tracking-[0.6em] animate-pulse">Tap the Boss</h2>
+          </div>
+        </div>
+
+        {/* Energy Bar */}
+        <div className="px-8 mb-10">
+            <div className="flex justify-between items-center mb-2">
+                <div className="flex items-center gap-1.5">
+                    <span className="text-blue-500">⚡</span>
+                    <span className="text-[10px] font-black text-neutral-600 uppercase tracking-widest">Energy</span>
+                </div>
+                <span className="text-sm font-black text-blue-500 italic">{Math.floor(energy)}<span className="text-neutral-800 mx-0.5">/</span>{maxEnergy}</span>
+            </div>
+            <div className="h-3 bg-[#0a0a0a] rounded-full overflow-hidden border border-white/5 p-[2px]">
+                <div className="h-full bg-gradient-to-r from-blue-950 via-blue-500 to-cyan-300 rounded-full transition-all duration-300 shadow-[0_0_10px_rgba(59,130,246,0.3)]" style={{ width: `${(energy/maxEnergy)*100}%` }}></div>
+            </div>
+        </div>
+
+        {/* Footer Navigation */}
+        <nav className="h-24 bg-black border-t border-white/5 flex justify-around items-center px-4 pb-4">
+          <button 
+            className={`flex-1 flex flex-col items-center gap-1.5 transition-all ${activeTab === 'game' ? 'text-blue-500' : 'text-neutral-700'}`} 
+            onClick={() => setActiveTab('game')}
+          >
+            <div className={`h-1 w-8 rounded-full mb-1 transition-all ${activeTab === 'game' ? 'bg-blue-500' : 'bg-transparent'}`}></div>
+            <span className="text-2xl">⚡</span>
+            <span className="text-[9px] font-black uppercase tracking-tighter">Play</span>
+          </button>
+          
+          <button 
+            className={`flex-1 flex flex-col items-center gap-1.5 transition-all ${activeTab === 'shop' ? 'text-blue-500' : 'text-neutral-700'}`} 
+            onClick={() => setActiveTab('shop')}
+          >
+            <div className={`h-1 w-8 rounded-full mb-1 transition-all ${activeTab === 'shop' ? 'bg-blue-500' : 'bg-transparent'}`}></div>
+            <span className="text-2xl">🛍️</span>
+            <span className="text-[9px] font-black uppercase tracking-tighter">Market</span>
+          </button>
+        </nav>
+      </div>
+
+      <style>{`
+        @keyframes pop {
+          0% { transform: translateY(0) scale(1) rotate(0deg); opacity: 1; }
+          100% { transform: translateY(-180px) scale(1.8) rotate(${Math.random() > 0.5 ? '10deg' : '-10deg'}); opacity: 0; }
+        }
+        .animate-pop { animation: pop 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; }
+      `}</style>
+    </div>
+  );
+};
+
+export default App;
+
