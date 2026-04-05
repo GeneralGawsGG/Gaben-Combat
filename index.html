@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Gaben Clicker Global</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #000;
+            color: #fff;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .tap-animation {
+            position: absolute;
+            pointer-events: none;
+            font-weight: 900;
+            font-size: 2.5rem;
+            color: #3b82f6;
+            animation: float-up 0.6s ease-out forwards;
+            z-index: 50;
+        }
+
+        @keyframes float-up {
+            0% { transform: translateY(0) scale(1); opacity: 1; }
+            100% { transform: translateY(-150px) scale(1.5); opacity: 0; }
+        }
+
+        .gabe-card:active {
+            transform: scale(0.95);
+        }
+
+        .glow {
+            box-shadow: 0 0 50px rgba(59, 130, 246, 0.2);
+        }
+    </style>
+</head>
+<body class="flex justify-center min-h-screen">
+
+    <div class="w-full max-w-[450px] bg-[#050505] flex flex-col relative border-x border-white/5">
+        
+        <div class="p-6 flex justify-between items-center">
+            <div>
+                <p class="text-[10px] text-blue-500 font-black uppercase tracking-widest">Steam Wallet</p>
+                <div class="flex items-center gap-2">
+                    <img src="https://cdn-icons-png.flaticon.com/512/217/217853.png" class="w-8 h-8" alt="coin">
+                    <span id="balance" class="text-4xl font-black italic tracking-tighter">0</span>
+                </div>
+            </div>
+            <div class="text-right">
+                <p class="text-[10px] text-neutral-600 font-bold uppercase">Profit/h</p>
+                <p class="text-blue-400 font-black text-xl">+0</p>
+            </div>
+        </div>
+
+        <div class="flex-1 relative flex flex-col justify-center items-center overflow-hidden" id="click-area">
+            <div class="relative">
+                <div class="absolute -inset-20 bg-blue-600/10 rounded-full blur-[100px]"></div>
+                
+                <div class="relative w-80 h-80 rounded-full border-[12px] border-[#111] bg-black overflow-hidden glow gabe-card transition-transform duration-75 cursor-pointer">
+                    <img src="https://i.postimg.cc/mD377m8M/gaben-newell.jpg" 
+                         class="w-full h-full object-cover pointer-events-none" 
+                         alt="Gaben"
+                         id="gabe-img">
+                </div>
+            </div>
+            <p class="mt-12 text-[11px] text-blue-900 font-black uppercase tracking-[0.5em] animate-pulse">Tap to Lord Gaben</p>
+        </div>
+
+        <div class="px-8 mb-10">
+            <div class="flex justify-between text-[10px] font-black text-neutral-600 mb-2 uppercase tracking-widest">
+                <span>Steam Energy</span>
+                <span class="text-blue-500"><span id="energy">1000</span> / 1000</span>
+            </div>
+            <div class="h-3 bg-[#0a0a0a] rounded-full overflow-hidden border border-white/5 p-0.5">
+                <div id="energy-bar" class="h-full bg-gradient-to-r from-blue-900 to-blue-400 rounded-full transition-all duration-300" style="width: 100%"></div>
+            </div>
+        </div>
+
+        <nav class="h-24 bg-black border-t border-white/5 flex justify-around items-center px-4">
+            <div class="flex flex-col items-center text-blue-500">
+                <span class="text-2xl">🎮</span>
+                <span class="text-[9px] font-black uppercase mt-1">Play</span>
+            </div>
+            <div class="flex flex-col items-center text-neutral-700">
+                <span class="text-2xl">🛒</span>
+                <span class="text-[9px] font-black uppercase mt-1">Market</span>
+            </div>
+        </nav>
+    </div>
+
+    <script>
+        let score = 0;
+        let energy = 1000;
+        const maxEnergy = 1000;
+
+        const balanceEl = document.getElementById('balance');
+        const energyEl = document.getElementById('energy');
+        const energyBar = document.getElementById('energy-bar');
+        const clickArea = document.getElementById('click-area');
+
+        function updateDisplay() {
+            balanceEl.textContent = Math.floor(score).toLocaleString();
+            energyEl.textContent = Math.floor(energy);
+            energyBar.style.width = (energy / maxEnergy * 100) + '%';
+        }
+
+        function createFloatingText(x, y) {
+            const text = document.createElement('div');
+            text.className = 'tap-animation';
+            text.textContent = '+1';
+            text.style.left = x + 'px';
+            text.style.top = y + 'px';
+            document.body.appendChild(text);
+            
+            setTimeout(() => text.remove(), 600);
+        }
+
+        clickArea.addEventListener('pointerdown', (e) => {
+            if (energy >= 1) {
+                score += 1;
+                energy -= 1;
+                createFloatingText(e.clientX, e.clientY);
+                updateDisplay();
+                
+                // Легкая вибрация если поддерживается
+                if (navigator.vibrate) navigator.vibrate(10);
+            }
+        });
+
+        // Регенерация энергии
+        setInterval(() => {
+            if (energy < maxEnergy) {
+                energy = Math.min(maxEnergy, energy + 2);
+                updateDisplay();
+            }
+        }, 1000);
+    </script>
+</body>
+</html>
