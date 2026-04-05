@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Gaben Game: Ultimate</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #000;
+            color: #fff;
+            user-select: none;
+            overflow: hidden;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        #loading-screen {
+            position: fixed;
+            inset: 0;
+            background: #000;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .loader-bar {
+            width: 240px;
+            height: 4px;
+            background: #111;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-top: 24px;
+        }
+
+        .loader-progress {
+            width: 0%;
+            height: 100%;
+            background: #2563eb;
+            box-shadow: 0 0 20px #2563eb;
+            animation: load 2.5s forwards cubic-bezier(0.1, 0.7, 0.1, 1);
+        }
+
+        @keyframes load { 0% { width: 0%; } 100% { width: 100%; } }
+
+        .tap-animation {
+            position: absolute;
+            pointer-events: none;
+            font-weight: 900;
+            font-size: 2.5rem;
+            color: #3b82f6;
+            text-shadow: 0 0 15px rgba(59, 130, 246, 0.8);
+            animation: float-up 0.6s ease-out forwards;
+            z-index: 100;
+        }
+
+        @keyframes float-up {
+            0% { transform: translateY(0) scale(1); opacity: 1; }
+            100% { transform: translateY(-150px) scale(1.5); opacity: 0; }
+        }
+
+        .gabe-main-btn:active { transform: scale(0.92); }
+        .nav-item.active { color: #3b82f6; }
+        .nav-item.active .nav-indicator { background-color: #3b82f6; }
+    </style>
+</head>
+<body class="flex justify-center min-h-screen">
+
+    <div id="loading-screen">
+        <div class="relative mb-8 text-center">
+            <div class="absolute -inset-12 bg-blue-600/30 rounded-full blur-3xl animate-pulse"></div>
+            <img src="https://cs12.pikabu.ru/post_img/2021/08/12/5/16287520021736990.jpg" 
+                 class="w-40 h-40 rounded-full border-4 border-blue-600 relative object-cover shadow-2xl mx-auto">
+            <h1 class="text-4xl font-black italic tracking-tighter mt-6 uppercase">Gaben <span class="text-blue-600">Game</span></h1>
+        </div>
+        <div id="progress-container" class="loader-bar">
+            <div class="loader-progress"></div>
+        </div>
+        <button id="start-btn" class="hidden mt-4 px-12 py-5 bg-blue-600 rounded-2xl font-black text-base uppercase tracking-widest shadow-[0_0_20px_rgba(37,99,235,0.5)] active:scale-95 transition-transform">ЗАПУСТИТЬ</button>
+    </div>
+
+    <div class="w-full max-w-[450px] bg-[#020202] flex flex-col relative border-x border-white/5 shadow-2xl h-[100dvh]">
+        
+        <div class="p-6 pb-4 flex justify-between items-start bg-gradient-to-b from-blue-900/10 to-transparent">
+            <div>
+                <span class="text-[11px] text-blue-500 font-black uppercase tracking-widest opacity-60">Кошелек Steam</span>
+                <div class="flex items-center gap-3">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/8/83/Steam_icon_logo.svg/2048px-Steam_icon_logo.svg.png" class="w-8 h-8" alt="steam">
+                    <span id="balance" class="text-4xl font-black italic tracking-tighter">0</span>
+                </div>
+            </div>
+            <div class="text-right">
+                <span class="text-[10px] text-neutral-600 font-bold uppercase">Доход/сек</span>
+                <p class="text-blue-400 font-black text-xl" id="passive-income">0</p>
+            </div>
+        </div>
+
+        <div id="game-page" class="flex-1 relative flex flex-col justify-center items-center">
+            <div id="click-target" class="relative w-80 h-80 rounded-full border-[10px] border-[#0a0a0a] bg-neutral-900 overflow-hidden shadow-[0_0_80px_rgba(37,99,235,0.15)] gabe-main-btn transition-all duration-75 cursor-pointer">
+                <img src="https://cs12.pikabu.ru/post_img/2021/08/12/5/16287520021736990.jpg" class="w-full h-full object-cover pointer-events-none scale-110" draggable="false">
+            </div>
+            <p class="mt-12 text-[12px] text-blue-800 font-black uppercase tracking-[0.7em] animate-pulse">Тапай по Бате</p>
+
+            <div class="w-full px-8 mt-12 absolute bottom-6">
+                <div class="flex justify-between items-center mb-2">
+                    <div class="flex items-center gap-2">
+                        <span class="text-blue-500 text-lg">⚡</span>
+                        <span class="text-[11px] font-black text-neutral-600 uppercase tracking-widest">Энергия</span>
+                    </div>
+                    <span class="text-lg font-black text-blue-500 italic"><span id="energy-val">1000</span><span class="text-neutral-800 mx-1">/</span>1000</span>
+                </div>
+                <div class="h-4 bg-[#080808] rounded-full overflow-hidden border border-white/5 p-1">
+                    <div id="energy-bar" class="h-full bg-gradient-to-r from-blue-950 via-blue-500 to-cyan-300 rounded-full transition-all duration-300" style="width: 100%"></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="market-page" class="flex-1 hidden overflow-y-auto p-6">
+            <h2 class="text-2xl font-black italic mb-6 text-blue-500">УЛУЧШЕНИЯ</h2>
+            <div class="space-y-4">
+                <div onclick="buyUpgrade('click')" class="bg-neutral-900/50 p-4 rounded-2xl border border-white/5 flex justify-between items-center active:scale-95 transition-transform cursor-pointer">
+                    <div>
+                        <h3 class="font-bold text-white uppercase text-sm">Мощный Клик</h3>
+                        <p class="text-xs text-blue-400">+1 за тап</p>
+                    </div>
+                    <div class="text-right">
+                        <span class="block font-black text-white text-lg" id="click-cost">100</span>
+                        <span class="text-[10px] text-neutral-500 uppercase">Цена</span>
+                    </div>
+                </div>
+                <div onclick="buyUpgrade('passive')" class="bg-neutral-900/50 p-4 rounded-2xl border border-white/5 flex justify-between items-center active:scale-95 transition-transform cursor-pointer">
+                    <div>
+                        <h3 class="font-bold text-white uppercase text-sm">Авто-Фарм</h3>
+                        <p class="text-xs text-blue-400">+5 в секунду</p>
+                    </div>
+                    <div class="text-right">
+                        <span class="block font-black text-white text-lg" id="passive-cost">500</span>
+                        <span class="text-[10px] text-neutral-500 uppercase">Цена</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="withdraw-page" class="flex-1 hidden p-6">
+            <h2 class="text-2xl font-black italic mb-6 text-blue-500">ВЫВОД СРЕДСТВ</h2>
+            <div class="bg-neutral-900/50 p-6 rounded-3xl border border-white/5">
+                <label class="text-[10px] text-neutral-500 uppercase font-black mb-2 block">Номер карты или криптокошелька</label>
+                <input type="text" placeholder="XXXX XXXX XXXX XXXX" class="w-full bg-black border border-neutral-800 rounded-xl p-4 mb-4 text-white font-mono focus:border-blue-600 outline-none transition-colors">
+                <label class="text-[10px] text-neutral-500 uppercase font-black mb-2 block">Доступно для вывода (мин. 50,000)</label>
+                <div class="text-4xl font-black text-blue-500 mb-6 tracking-tighter" id="withdraw-amount">0 $</div>
+                <button onclick="attemptWithdraw()" class="w-full py-4 bg-blue-600 rounded-xl font-black uppercase text-sm tracking-widest active:scale-95 transition-transform shadow-[0_0_15px_rgba(37,99,235,0.3)]">ВЫВЕСТИ В РЕАЛ</button>
+            </div>
+            <p class="mt-6 text-[9px] text-neutral-600 text-center uppercase tracking-widest font-bold">Транзакции защищены Valve Corporation</p>
+        </div>
+
+        <nav class="h-24 bg-black border-t border-white/5 flex justify-around items-center px-4 pb-6 shrink-0">
+            <div onclick="showPage('game')" id="nav-game" class="nav-item active flex flex-col items-center gap-1 cursor-pointer">
+                <div class="nav-indicator w-8 h-1 rounded-full mb-2 transition-all"></div>
+                <img src="https://cs12.pikabu.ru/post_img/2021/08/12/5/16287520021736990.jpg" class="w-7 h-7 rounded-full object-cover border border-current">
+                <span class="text-[10px] font-black uppercase tracking-tighter">Игра</span>
+            </div>
+            <div onclick="showPage('market')" id="nav-market" class="nav-item flex flex-col items-center gap-1 text-neutral-800 cursor-pointer transition-colors">
+                <div class="nav-indicator w-8 h-1 bg-transparent rounded-full mb-2 transition-all"></div>
+                <span class="text-2xl">🛒</span>
+                <span class="text-[10px] font-black uppercase tracking-tighter">Маркет</span>
+            </div>
+            <div onclick="showPage('withdraw')" id="nav-withdraw" class="nav-item flex flex-col items-center gap-1 text-neutral-800 cursor-pointer transition-colors">
+                <div class="nav-indicator w-8 h-1 bg-transparent rounded-full mb-2 transition-all"></div>
+                <span class="text-2xl">💰</span>
+                <span class="text-[10px] font-black uppercase tracking-tighter">Вывод</span>
+            </div>
+        </nav>
+    </div>
+
+    <script>
+        // --- ДАННЫЕ И СОХРАНЕНИЯ ---
+        const maxEnergy = 1000;
+        
+        let state = {
+            coins: Number(localStorage.getItem('gv_coins')) || 0,
+            energy: Number(localStorage.getItem('gv_energy')) || maxEnergy,
+            tapValue: Number(localStorage.getItem('gv_tap')) || 1,
+            passiveIncome: Number(localStorage.getItem('gv_passive')) || 0,
+            costs: { 
+                click: Number(localStorage.getItem('gv_c_click')) || 100, 
+                passive: Number(localStorage.getItem('gv_c_passive')) || 500 
+            }
+        };
+
+        // --- ОЗВУЧКА ---
+        function speak(text, pitch = 0.6) {
+            // Для частых кликов прерываем предыдущую фразу, чтобы браузер не завис
+            window.speechSynthesis.cancel();
+            const msg = new SpeechSynthesisUtterance(text);
+            msg.lang = 'ru-RU';
+            msg.pitch = pitch;
+            msg.rate = 1.0;
+            window.speechSynthesis.speak(msg);
+        }
+
+        // --- ОБНОВЛЕНИЕ ИНТЕРФЕЙСА ---
+        function updateUI() {
+            // Текст
+            document.getElementById('balance').textContent = Math.floor(state.coins).toLocaleString();
+            document.getElementById('passive-income').textContent = state.passiveIncome;
+            document.getElementById('click-cost').textContent = state.costs.click;
+            document.getElementById('passive-cost').textContent = state.costs.passive;
+            
+            // Вывод переводим условно 1000 монет = 1$
+            document.getElementById('withdraw-amount').textContent = (state.coins / 1000).toFixed(2) + ' $';
+
+            // Энергия
+            document.getElementById('energy-val').textContent = Math.floor(state.energy);
+            document.getElementById('energy-bar').style.width = (state.energy / maxEnergy * 100) + '%';
+
+            // Сохранение в память браузера
+            localStorage.setItem('gv_coins', state.coins);
+            localStorage.setItem('gv_energy', state.energy);
+            localStorage.setItem('gv_tap', state.tapValue);
+            localStorage.setItem('gv_passive', state.passiveIncome);
+            localStorage.setItem('gv_c_click', state.costs.click);
+            localStorage.setItem('gv_c_passive', state.costs.passive);
+        }
+
+        // --- ПЕРЕКЛЮЧЕНИЕ ВКЛАДОК ---
+        function showPage(page) {
+            ['game', 'market', 'withdraw'].forEach(p => document.getElementById(p + '-page').classList.add('hidden'));
+            document.getElementById(page + '-page').classList.remove('hidden');
+            
+            ['nav-game', 'nav-market', 'nav-withdraw'].forEach(n => {
+                document.getElementById(n).classList.remove('active');
+                document.getElementById(n).classList.add('text-neutral-800');
+            });
+            
+            document.getElementById('nav-' + page).classList.add('active');
+            document.getElementById('nav-' + page).classList.remove('text-neutral-800');
+        }
+
+        // --- ИГРОВАЯ ЛОГИКА ---
+        document.getElementById('click-target').addEventListener('pointerdown', (e) => {
+            if (state.energy >= state.tapValue) {
+                // Добавляем монеты и тратим энергию
+                state.coins += state.tapValue;
+                state.energy -= state.tapValue;
+                
+                // Озвучка (случайная высота голоса)
+                speak("Габен", 0.3 + Math.random() * 0.6);
+                
+                // Анимация циферок
+                const num = document.createElement('div');
+                num.className = 'tap-animation';
+                num.textContent = '+' + state.tapValue;
+                num.style.left = e.clientX + 'px';
+                num.style.top = (e.clientY - 40) + 'px';
+                document.body.appendChild(num);
+                setTimeout(() => num.remove(), 600);
+                
+                // Вибрация телефона (если поддерживается)
+                if (navigator.vibrate) navigator.vibrate(10);
+                
+                updateUI();
+            }
+        });
+
+        // --- МАГАЗИН И ВЫВОД ---
+        function buyUpgrade(type) {
+            if (type === 'click' && state.coins >= state.costs.click) {
+                state.coins -= state.costs.click;
+                state.tapValue += 1;
+                state.costs.click = Math.floor(state.costs.click * 1.8);
+            } else if (type === 'passive' && state.coins >= state.costs.passive) {
+                state.coins -= state.costs.passive;
+                state.passiveIncome += 5;
+                state.costs.passive = Math.floor(state.costs.passive * 2.1);
+            }
+            updateUI();
+        }
+
+        function attemptWithdraw() {
+            if (state.coins < 50000) {
+                alert('Недостаточно средств! Нужно минимум 50,000 монет для вывода.');
+            } else {
+                alert('Заявка на вывод отправлена на сервера Valve! Ожидайте поступления средств.');
+                state.coins -= 50000;
+                updateUI();
+            }
+        }
+
+        // --- ИГРОВОЙ ЦИКЛ (Таймеры) ---
+        setInterval(() => {
+            // Пассивный доход (начисляем каждые 100 мс)
+            if (state.passiveIncome > 0) { 
+                state.coins += state.passiveIncome / 10; 
+            }
+            // Регенерация энергии (+3 в секунду = +0.3 за 100 мс)
+            if (state.energy < maxEnergy) {
+                state.energy = Math.min(maxEnergy, state.energy + 0.3);
+            }
+            updateUI();
+        }, 100);
+
+        // --- ЗАПУСК ---
+        setTimeout(() => {
+            document.getElementById('progress-container').classList.add('hidden');
+            document.getElementById('start-btn').classList.remove('hidden');
+        }, 2500);
+
+        document.getElementById('start-btn').addEventListener('click', () => {
+            speak("Мать Габена представляет", 0.5);
+            document.getElementById('loading-screen').style.transform = 'translateY(-100%)';
+        });
+
+        // Первичное обновление
+        updateUI();
+    </script>
+</body>
+</html>
+
+
