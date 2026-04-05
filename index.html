@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Gaben Game: Evolution</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #000;
+            color: #fff;
+            user-select: none;
+            overflow: hidden;
+            touch-action: manipulation;
+        }
+
+        #loading-screen {
+            position: fixed;
+            inset: 0;
+            background: #000;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .loader-bar {
+            width: 240px;
+            height: 4px;
+            background: #111;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-top: 24px;
+        }
+
+        .loader-progress {
+            width: 0%;
+            height: 100%;
+            background: #2563eb;
+            box-shadow: 0 0 20px #2563eb;
+            animation: load 3.5s forwards cubic-bezier(0.1, 0.7, 0.1, 1);
+        }
+
+        @keyframes load {
+            0% { width: 0%; }
+            100% { width: 100%; }
+        }
+
+        .tap-animation {
+            position: absolute;
+            pointer-events: none;
+            font-weight: 900;
+            font-size: 2.5rem;
+            color: #3b82f6;
+            text-shadow: 0 0 15px rgba(59, 130, 246, 0.6);
+            animation: float-up 0.7s ease-out forwards;
+            z-index: 100;
+        }
+
+        @keyframes float-up {
+            0% { transform: translateY(0) scale(1); opacity: 1; }
+            100% { transform: translateY(-200px) scale(1.5); opacity: 0; }
+        }
+
+        .gabe-main-btn:active { transform: scale(0.92); }
+        
+        .pulse-blue {
+            animation: pulse-ring 2s infinite;
+        }
+
+        @keyframes pulse-ring {
+            0% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.4); }
+            70% { box-shadow: 0 0 0 20px rgba(37, 99, 235, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0); }
+        }
+
+        .nav-item.active { color: #3b82f6; }
+        .nav-item.active .nav-indicator { background-color: #3b82f6; }
+    </style>
+</head>
+<body class="flex justify-center min-h-screen">
+
+    <!-- LOADING SCREEN -->
+    <div id="loading-screen">
+        <div class="relative mb-8 text-center">
+            <div class="absolute -inset-12 bg-blue-600/30 rounded-full blur-3xl animate-pulse"></div>
+            <img src="https://cs12.pikabu.ru/post_img/2021/08/12/5/16287520021736990.jpg" 
+                 class="w-40 h-40 rounded-full border-4 border-blue-600 relative object-cover shadow-2xl mx-auto">
+            <h1 class="text-4xl font-black italic tracking-tighter mt-6">ГАБЕН <span class="text-blue-600">ГЕЙМ</span></h1>
+            <p class="text-[10px] text-neutral-500 uppercase tracking-[0.3em] font-bold mt-2">Mother Engine 2.0</p>
+        </div>
+
+        <div id="progress-container">
+            <div class="loader-bar">
+                <div class="loader-progress"></div>
+            </div>
+        </div>
+
+        <button id="start-btn" class="hidden mt-10 px-12 py-5 bg-blue-600 rounded-2xl font-black text-base uppercase tracking-widest pulse-blue shadow-lg active:scale-95 transition-transform">
+            ЗАПУСТИТЬ
+        </button>
+    </div>
+
+    <!-- MAIN APP CONTAINER -->
+    <div class="w-full max-w-[450px] bg-[#020202] flex flex-col relative border-x border-white/5">
+        
+        <!-- Header -->
+        <div class="p-6 pb-4 flex justify-between items-start bg-gradient-to-b from-blue-900/10 to-transparent">
+            <div>
+                <span class="text-[11px] text-blue-500 font-black uppercase tracking-widest opacity-60">Кошелек Steam</span>
+                <div class="flex items-center gap-3">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/8/83/Steam_icon_logo.svg/2048px-Steam_icon_logo.svg.png" class="w-8 h-8" alt="steam">
+                    <span id="balance" class="text-4xl font-black italic tracking-tighter">0</span>
+                </div>
+            </div>
+            <div class="text-right">
+                <span class="text-[10px] text-neutral-600 font-bold uppercase">Доход/сек</span>
+                <p class="text-blue-400 font-black text-xl" id="passive-income">0</p>
+            </div>
+        </div>
+
+        <!-- Content Area -->
+        <div id="game-page" class="flex-1 relative flex flex-col justify-center items-center">
+            <div class="relative group">
+                <div class="absolute -inset-32 bg-blue-600/5 rounded-full blur-[150px] pointer-events-none"></div>
+                <div id="click-target" class="relative w-80 h-80 rounded-full border-[10px] border-[#0a0a0a] bg-neutral-900 overflow-hidden shadow-[0_0_80px_rgba(37,99,235,0.15)] gabe-main-btn transition-all duration-75 cursor-pointer">
+                    <img src="https://cs12.pikabu.ru/post_img/2021/08/12/5/16287520021736990.jpg" class="w-full h-full object-cover pointer-events-none scale-110" draggable="false">
+                </div>
+            </div>
+            <div class="mt-16 text-center">
+                <p class="text-[12px] text-blue-800 font-black uppercase tracking-[0.7em] animate-pulse">Тапай по Бате</p>
+            </div>
+        </div>
+
+        <!-- Market Page (Hidden by default) -->
+        <div id="market-page" class="flex-1 hidden overflow-y-auto p-6">
+            <h2 class="text-2xl font-black italic mb-6">МАРКЕТ</h2>
+            
+            <div class="space-y-4">
+                <!-- Upgrade 1 -->
+                <div onclick="buyUpgrade('click')" class="bg-neutral-900/50 p-4 rounded-2xl border border-white/5 flex justify-between items-center active:scale-95 transition-transform cursor-pointer">
+                    <div>
+                        <h3 class="font-bold text-blue-400 uppercase text-xs">Мощный Клик</h3>
+                        <p class="text-xs text-neutral-500">+1 за нажатие</p>
+                    </div>
+                    <div class="text-right">
+                        <span class="block font-black text-white" id="click-cost">100</span>
+                        <span class="text-[10px] text-neutral-600 font-bold uppercase">Цена</span>
+                    </div>
+                </div>
+
+                <!-- Upgrade 2 -->
+                <div onclick="buyUpgrade('passive')" class="bg-neutral-900/50 p-4 rounded-2xl border border-white/5 flex justify-between items-center active:scale-95 transition-transform cursor-pointer">
+                    <div>
+                        <h3 class="font-bold text-blue-400 uppercase text-xs">Скидки в Steam</h3>
+                        <p class="text-xs text-neutral-500">+5 в секунду</p>
+                    </div>
+                    <div class="text-right">
+                        <span class="block font-black text-white" id="passive-cost">500</span>
+                        <span class="text-[10px] text-neutral-600 font-bold uppercase">Цена</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Energy Bar -->
+        <div id="energy-section" class="px-8 mb-8">
+            <div class="flex justify-between items-center mb-3">
+                <div class="flex items-center gap-2">
+                    <span class="text-blue-500 text-lg">⚡</span>
+                    <span class="text-[11px] font-black text-neutral-600 uppercase tracking-widest">Энергия</span>
+                </div>
+                <span class="text-lg font-black text-blue-500 italic"><span id="energy-val">1000</span><span class="text-neutral-800 mx-1">/</span>1000</span>
+            </div>
+            <div class="h-4 bg-[#080808] rounded-full overflow-hidden border border-white/5 p-1">
+                <div id="energy-bar" class="h-full bg-gradient-to-r from-blue-950 via-blue-500 to-cyan-300 rounded-full transition-all duration-500" style="width: 100%"></div>
+            </div>
+        </div>
+
+        <!-- Navigation -->
+        <nav class="h-24 bg-black border-t border-white/5 flex justify-around items-center px-6 pb-6">
+            <div onclick="showPage('game')" id="nav-game" class="nav-item active flex flex-col items-center gap-1.5 transition-colors cursor-pointer">
+                <div class="nav-indicator w-8 h-1 rounded-full mb-1 transition-all"></div>
+                <img src="https://cs12.pikabu.ru/post_img/2021/08/12/5/16287520021736990.jpg" class="w-7 h-7 rounded-full object-cover border border-current">
+                <span class="text-[10px] font-black uppercase tracking-tighter">Игра</span>
+            </div>
+            <div onclick="showPage('market')" id="nav-market" class="nav-item flex flex-col items-center gap-1.5 text-neutral-800 transition-colors cursor-pointer">
+                <div class="nav-indicator w-8 h-1 bg-transparent rounded-full mb-1 transition-all"></div>
+                <span class="text-2xl">🛍️</span>
+                <span class="text-[10px] font-black uppercase tracking-tighter">Маркет</span>
+            </div>
+        </nav>
+    </div>
+
+    <script>
+        // --- DATA & STATE ---
+        let state = {
+            coins: Number(localStorage.getItem('g_coins')) || 0,
+            energy: Number(localStorage.getItem('g_energy')) || 1000,
+            tapValue: Number(localStorage.getItem('g_tap')) || 1,
+            passiveIncome: Number(localStorage.getItem('g_passive')) || 0,
+            costs: {
+                click: Number(localStorage.getItem('g_cost_click')) || 100,
+                passive: Number(localStorage.getItem('g_cost_passive')) || 500
+            }
+        };
+
+        const maxEnergy = 1000;
+
+        // --- AUDIO ---
+        function speak(text) {
+            window.speechSynthesis.cancel();
+            const msg = new SpeechSynthesisUtterance(text);
+            msg.lang = 'ru-RU';
+            msg.pitch = 0.55; 
+            msg.rate = 0.85; 
+            const voices = window.speechSynthesis.getVoices();
+            const ruVoice = voices.find(v => v.lang.includes('ru'));
+            if (ruVoice) msg.voice = ruVoice;
+            window.speechSynthesis.speak(msg);
+        }
+
+        // --- UI UPDATES ---
+        function updateUI() {
+            document.getElementById('balance').textContent = Math.floor(state.coins).toLocaleString();
+            document.getElementById('energy-val').textContent = Math.floor(state.energy);
+            document.getElementById('energy-bar').style.width = (state.energy / maxEnergy * 100) + '%';
+            document.getElementById('passive-income').textContent = state.passiveIncome;
+            document.getElementById('click-cost').textContent = state.costs.click;
+            document.getElementById('passive-cost').textContent = state.costs.passive;
+
+            // Save
+            localStorage.setItem('g_coins', state.coins);
+            localStorage.setItem('g_energy', state.energy);
+            localStorage.setItem('g_tap', state.tapValue);
+            localStorage.setItem('g_passive', state.passiveIncome);
+            localStorage.setItem('g_cost_click', state.costs.click);
+            localStorage.setItem('g_cost_passive', state.costs.passive);
+        }
+
+        // --- NAVIGATION ---
+        function showPage(page) {
+            const gamePage = document.getElementById('game-page');
+            const marketPage = document.getElementById('market-page');
+            const navGame = document.getElementById('nav-game');
+            const navMarket = document.getElementById('nav-market');
+
+            if (page === 'game') {
+                gamePage.classList.remove('hidden');
+                marketPage.classList.add('hidden');
+                navGame.classList.add('active');
+                navMarket.classList.remove('active');
+                navMarket.classList.add('text-neutral-800');
+            } else {
+                gamePage.classList.add('hidden');
+                marketPage.classList.remove('hidden');
+                navMarket.classList.add('active');
+                navMarket.classList.remove('text-neutral-800');
+                navGame.classList.remove('active');
+            }
+        }
+
+        // --- CORE GAMEPLAY ---
+        document.getElementById('click-target').addEventListener('pointerdown', (e) => {
+            if (state.energy >= 1) {
+                state.coins += state.tapValue;
+                state.energy -= 1;
+                
+                const num = document.createElement('div');
+                num.className = 'tap-animation';
+                num.textContent = '+' + state.tapValue;
+                num.style.left = e.clientX + 'px';
+                num.style.top = (e.clientY - 50) + 'px';
+                document.body.appendChild(num);
+                setTimeout(() => num.remove(), 700);
+                
+                updateUI();
+                if (navigator.vibrate) navigator.vibrate(10);
+            }
+        });
+
+        function buyUpgrade(type) {
+            if (type === 'click' && state.coins >= state.costs.click) {
+                state.coins -= state.costs.click;
+                state.tapValue += 1;
+                state.costs.click = Math.floor(state.costs.click * 1.8);
+            } else if (type === 'passive' && state.coins >= state.costs.passive) {
+                state.coins -= state.costs.passive;
+                state.passiveIncome += 5;
+                state.costs.passive = Math.floor(state.costs.passive * 2.1);
+            }
+            updateUI();
+        }
+
+        // --- LOOPS ---
+        setInterval(() => {
+            // Passive Income
+            if (state.passiveIncome > 0) {
+                state.coins += state.passiveIncome / 10;
+            }
+            // Energy Regen
+            if (state.energy < maxEnergy) {
+                state.energy = Math.min(maxEnergy, state.energy + 0.3);
+            }
+            updateUI();
+        }, 100);
+
+        // --- INITIALIZATION ---
+        const startBtn = document.getElementById('start-btn');
+        setTimeout(() => {
+            document.getElementById('progress-container').style.display = 'none';
+            startBtn.classList.remove('hidden');
+        }, 3500);
+
+        startBtn.addEventListener('click', () => {
+            speak("Мать Габена представляет");
+            document.getElementById('loading-screen').style.transform = 'translateY(-100%)';
+        });
+
+        window.speechSynthesis.getVoices();
+        updateUI();
+    </script>
+</body>
+</html>
+
